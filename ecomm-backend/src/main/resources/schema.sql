@@ -1,0 +1,26 @@
+-- Users
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  role VARCHAR(50) NOT NULL
+);
+
+-- Products
+CREATE TABLE IF NOT EXISTS products (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  price DECIMAL(13,2) NOT NULL,
+  inventory INT NOT NULL DEFAULT 0
+);
+
+-- Orders (simplified)
+CREATE TABLE IF NOT EXISTS orders (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  buyer_id BIGINT NOT NULL,
+  status VARCHAR(50) NOT NULL,
+  total DECIMAL(13,2) NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  CONSTRAINT fk_order_user FOREIGN KEY (buyer_id) REFERENCES users(id)
+);
