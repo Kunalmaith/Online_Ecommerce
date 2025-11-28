@@ -156,46 +156,5 @@ curl -X POST http://localhost:8081/api/users -H "Content-Type: application/json"
 
 ---
 
-## What this prototype covers (mapping to rubric)
 
-- Problem understanding & solution design: basic separation between frontend/backed and clear data models (User/Product/Order).
-- Core Java concepts: model classes, constructors, getters/setters and DAO separation.
-- Database integration (JDBC): DAOs use raw JDBC via injected DataSource.
-- Servlets & web integration: Spring Boot controllers expose REST endpoints.
-
-This is intentionally minimal so reviewers can see the core ideas and the database schema without extra complexity.
-
----
-
-## Recommended next steps (to make this production-ready or a stronger demo)
-
-1. Authentication & Authorization (JWT): protect admin/seller endpoints and allow role-based access control.
-2. Replace in-memory H2 with a persistent DB (Postgres/MySQL) and provide `application-dev.properties` + Docker Compose.
-3. Model `OrderItem` and transactional order creation (reserve inventory, rollback on failure).
-4. Input validation (Bean Validation / DTOs) and global exception handling (`@ControllerAdvice`).
-5. Use Spring's `JdbcTemplate` or Spring Data JPA for less boilerplate and easier testing.
-6. Add unit and integration tests for DAOs and controllers.
-7. Add file upload for product images and persist them to S3 or a static server.
-
----
-
-## Submission tips (non-working prototype is acceptable)
-
-- Mention in your report which parts are implemented and which are planned (auth, payment, order items, persistence).
-- Include screenshots of the frontend pages and H2 console showing seeded data.
-- Include sample curl commands or a Postman collection in the repo to demonstrate API behavior.
-
----
-
-If you want, I can also:
-
-- Add JWT-based auth and protect admin endpoints.
-- Provide a `docker-compose.yml` that runs a Postgres DB and the backend.
-- Convert DAOs to use `JdbcTemplate` and add a couple of unit tests.
-
-Marking the README task completed next. If you'd like, I can also update the backend `README.md` (inside `ecomm-backend/`) to include the same info or add a Postman collection.
-
----
-
-© 2024 GUVI Geek Network Pvt. Ltd. All rights reserved.
 
