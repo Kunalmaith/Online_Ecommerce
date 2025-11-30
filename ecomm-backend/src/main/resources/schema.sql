@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS products (
   inventory INT NOT NULL DEFAULT 0
 );
 
--- Orders (simplified)
+-- Orders
 CREATE TABLE IF NOT EXISTS orders (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   buyer_id BIGINT NOT NULL,
@@ -23,4 +23,15 @@ CREATE TABLE IF NOT EXISTS orders (
   total DECIMAL(13,2) NOT NULL,
   created_at TIMESTAMP NOT NULL,
   CONSTRAINT fk_order_user FOREIGN KEY (buyer_id) REFERENCES users(id)
+);
+
+-- Order Items (line items with transaction management)
+CREATE TABLE IF NOT EXISTS order_items (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  product_id BIGINT NOT NULL,
+  quantity INT NOT NULL,
+  price DECIMAL(13,2) NOT NULL,
+  CONSTRAINT fk_order_item_order FOREIGN KEY (order_id) REFERENCES orders(id),
+  CONSTRAINT fk_order_item_product FOREIGN KEY (product_id) REFERENCES products(id)
 );

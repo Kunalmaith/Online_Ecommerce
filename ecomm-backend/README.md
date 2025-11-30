@@ -1,15 +1,21 @@
 # Ecomm Backend (Prototype)
 
-This is a small Java/Spring Boot prototype backend for a simple e-commerce platform. It demonstrates core Java OOP concepts, JDBC connectivity, and basic REST endpoints for Admin/Seller/Buyer operations.
+This is a Java/Spring Boot prototype backend for a simple e-commerce platform. It demonstrates core Java OOP concepts, JDBC connectivity, transaction management, and REST endpoints for Admin/Seller/Buyer operations.
 
-This prototype is suitable as a submission for an initial project review: it includes models, DAOs using raw JDBC, controllers, a schema and seed data for H2 in-memory DB.
+**Key Features:**
+- JDBC Transaction Management (commit/rollback) for checkout process
+- Servlet Session Management for shopping cart state
+- Raw JDBC DAOs with inventory reservation
+- Order line items and atomic order creation
+- MVC separation with service layer
 
 ## What is included
 
-- Models: `User`, `Product`, `Order`
-- DAOs: `UserDAO`, `ProductDAO`, `OrderDAO` (raw JDBC using injected DataSource)
-- REST controllers for basic CRUD and status updates
-- `schema.sql` and `data.sql` to initialize an H2 in-memory DB with sample data
+- Models: `User`, `Product`, `Order`, `OrderItem`, `Cart`, `CartItem`
+- DAOs: `UserDAO`, `ProductDAO`, `OrderDAO`, `OrderItemDAO` (raw JDBC using injected DataSource)
+- Service: `CheckoutService` with JDBC transactions
+- Controllers: `UserController`, `ProductController`, `OrderController`, `CartController`, `CheckoutController` (MVC separation)
+- `schema.sql` with order_items table and `data.sql` for H2 in-memory DB initialization
 - `pom.xml` (Maven) and Spring Boot application
 
 ## Project structure
@@ -22,9 +28,10 @@ ecomm-backend/
    └─ main/
       ├─ java/com/example/ecomm/
       │  ├─ EcommApplication.java
-      │  ├─ model/{User,Product,Order}.java
-      │  ├─ dao/{UserDAO,ProductDAO,OrderDAO}.java
-      │  └─ controller/{UserController,ProductController,OrderController}.java
+      │  ├─ model/{User,Product,Order,OrderItem,Cart,CartItem}.java
+      │  ├─ dao/{UserDAO,ProductDAO,OrderDAO,OrderItemDAO}.java
+      │  ├─ service/CheckoutService.java
+      │  └─ controller/{UserController,ProductController,OrderController,CartController,CheckoutController}.java
       └─ resources/
          ├─ application.properties
          ├─ schema.sql
@@ -52,23 +59,67 @@ The server runs on port `8081` by default.
   - Username: `sa`
   - Password: (empty)
 
-## Example API endpoints
+## API Endpoints
 
-- GET /api/products — list products
-- GET /api/products/{id} — get a product
-- POST /api/products — create product (JSON body)
-- PUT /api/products/{id}/inventory?inventory=10 — update inventory
-- DELETE /api/products/{id} — delete product
-
+### User Management
 - GET /api/users — list users
 - GET /api/users/{id}
 - POST /api/users — create user
 - DELETE /api/users/{id}
 
+### Product Management
+- GET /api/products — list products
+- GET /api/products/{id} — get a product
+- POST /api/products — create product
+- PUT /api/products/{id}/inventory?inventory=10 — update inventory
+- DELETE /api/products/{id}
+
+### Order Management
 - GET /api/orders — list orders
 - GET /api/orders/{id}
 - POST /api/orders — create order
-- PUT /api/orders/{id}/status?status=SHIPPED — update order status
+- PUT /api/orders/{id}/status?status=SHIPPED — update status
+
+### Shopping Cart (Session-based)
+- GET /api/cart — get cart from session
+- POST /api/cart/add — add item to cart (JSON: {productId, quantity})
+- DELETE /api/cart/{productId} — remove item
+- PUT /api/cart/{productId}?quantity=5 — update quantity
+- DELETE /api/cart — clear cart
+
+### Checkout with Transactions
+- POST /api/checkout — process checkout with JDBC transaction management
+  - Request: {buyerId}
+  - Response: {orderId, total, status}
+  - On success: cart is cleared, inventory updated, order created
+  - On failure (e.g., low stock): all changes are rolled back
+
+## Transaction Management & Inventory
+
+The `CheckoutService` implements JDBC transaction management:
+
+1. **Connection Control**: Disables auto-commit (`conn.setAutoCommit(false)`)
+2. **Order Creation**: Atomically creates order and order items
+3. **Inventory Reservation**: Checks availability before reserving stock
+4. **Commit/Rollback**: All operations committed together or rolled back on any error
+5. **Error Handling**: Insufficient stock, DB errors, etc., trigger rollback
+
+Example scenario:
+- Cart has 3 units of Product A (inventory = 5)
+- Checkout initiated
+- System checks: 5 >= 3 ✓
+- Order created, inventory updated to 2
+- If checkout fails partway (e.g., DB error), entire transaction rolls back
+
+## Session Management & Shopping Cart
+
+Shopping cart state is managed via Servlet `HttpSession`:
+
+- Cart added to session under key `"cart"`
+- Session persists across HTTP requests
+- `CartController` provides endpoints to manipulate cart
+- On checkout, cart is cleared from session
+- Sessions are in-memory (H2) for this prototype
 
 ## Notes and next steps (recommended improvements)
 

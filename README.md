@@ -1,9 +1,16 @@
 (The file `d:\react\ecomm_web_new\README.md` exists, but is empty)
 # Online E-commerce (Prototype)
 
-This repository contains a frontend (React + Vite) and a small Java Spring Boot backend prototype (JDBC + H2) intended as an initial project submission.
+This repository contains a frontend (React + Vite) and a Java Spring Boot backend prototype (JDBC + H2) designed to demonstrate core e-commerce concepts including transaction management and session-based cart functionality.
 
-The goal of this prototype is to demonstrate core Java/OOP concepts, JDBC connectivity, simple REST endpoints, and a React-based UI scaffold. It is intentionally lightweight so it can be presented as a non-working or semi-working prototype for review.
+**Backend Features (Review 1 Feedback Integration):**
+- ✅ JDBC Transaction Management (commit/rollback) for checkout process
+- ✅ Servlet Session Management for shopping cart state
+- ✅ Inventory reservation with atomic order creation
+- ✅ OrderItem model for line-item tracking
+- ✅ MVC separation with service layer
+
+The goal is to demonstrate Java/OOP concepts, JDBC connectivity with proper transaction handling, session management, REST endpoints, and a clean architecture suitable for review.
 
 ---
 
@@ -15,24 +22,30 @@ Top-level layout:
 d:/react/ecomm_web_new/
 ├─ ecomm-backend/            # Spring Boot prototype (Maven)
 │  ├─ pom.xml
-│  └─ src/main/...
+│  ├─ README.md
+│  └─ src/main/
+│     ├─ java/com/example/ecomm/
+│     │  ├─ model/           # (User, Product, Order, OrderItem, Cart, CartItem)
+│     │  ├─ dao/             # (UserDAO, ProductDAO, OrderDAO, OrderItemDAO)
+│     │  ├─ service/         # (CheckoutService with transactions)
+│     │  └─ controller/      # (User, Product, Order, Cart, Checkout controllers)
+│     └─ resources/          # (schema.sql, data.sql, application.properties)
 ├─ src/                      # Frontend React + Vite app
 ├─ package.json
 ├─ vite.config.js
 └─ README.md                 # (this file)
 ```
 
-Frontend important files:
-
-- `src/` — React app (Vite). Components, pages, assets are under `src/`.
+**Frontend key files:**
+- `src/` — React app (Vite). Components, pages, assets organized here.
 - `package.json` — frontend deps and scripts.
 
-Backend important files (under `ecomm-backend`):
-
-- `pom.xml` — Maven deps (Spring Boot, JDBC, H2)
-- `src/main/java/com/example/ecomm/` — application, models, DAOs, controllers
-- `src/main/resources/schema.sql` & `data.sql` — initial DB schema & seed data (H2)
-- `application.properties` — DB and server config (default server port 8081)
+**Backend key files (under `ecomm-backend`):**
+- `pom.xml` — Maven deps (Spring Boot, JDBC, H2, Servlet API)
+- `src/main/java/com/example/ecomm/` — models, DAOs, services, controllers
+- `src/main/resources/schema.sql` — DB schema with order_items table
+- `src/main/resources/data.sql` — seed data (users, products, sample orders)
+- `application.properties` — H2 + server config (port 8081)
 
 ---
 
@@ -86,114 +99,154 @@ H2 Console (web UI):
 - JDBC URL: `jdbc:h2:mem:ecommdb`
 - User: `sa` (no password)
 
-Note: this backend is a prototype — DAOs use raw JDBC and data is seeded from `data.sql` on startup.
-
 ---
 
-## Run the frontend (development)
+## Key Features Implemented (Review 1 Feedback)
 
-The frontend is a Vite + React app. By default Vite serves on port 5173.
+### 1. JDBC Transaction Management (Checkout Process)
+The `CheckoutService` implements atomic transactions for the entire checkout:
+- Disables auto-commit for manual transaction control
+- Creates order + order items atomically
+- Reserves inventory (checks availability before booking)
+- Commits if all steps succeed; rolls back on any error (insufficient stock, DB failure)
+- Handles errors gracefully with meaningful messages
 
-1. From the repo root open PowerShell:
+### 2. Servlet Session Management (Shopping Cart)
+`CartController` manages cart state via `HttpSession`:
+- Cart persists across HTTP requests during a session
+- Add/remove/update items without immediate DB writes
+- Session stored in-memory (H2 for this prototype)
+- Cart cleared after successful checkout
+- No external session store needed
 
-```powershell
-cd d:\react\ecomm_web_new
-```
-
-2. Install dependencies (run once):
-
-```powershell
-npm install
-```
-
-3. (Optional) Point frontend to backend API. The app can read an env var `VITE_API_URL` to call the backend. Example (PowerShell):
-
-```powershell
-$env:VITE_API_URL = "http://localhost:8081"
-npm run dev
-```
-
-If you don't set `VITE_API_URL`, you may need to update the frontend `axios` base URL in the code or configure a Vite proxy in `vite.config.js`.
-
-Visit the dev UI at the address printed by Vite (typically `http://localhost:5173`).
-
----
-
-## Run both concurrently (recommended)
-
-Open two terminals:
-
-- Terminal 1 (backend):
-
-```powershell
-cd d:\react\ecomm_web_new\ecomm-backend
-mvn -q spring-boot:run
-```
-
-- Terminal 2 (frontend):
-
-```powershell
-cd d:\react\ecomm_web_new
-$env:VITE_API_URL = "http://localhost:8081"
-npm run dev
-```
-
-Now the frontend can call the backend APIs at `http://localhost:8081`.
+### 3. OrderItem Model & Inventory Management
+- `OrderItem` table stores line items per order (product_id, quantity, price)
+- Inventory decremented atomically during checkout
+- Prevents overselling with pre-transaction availability checks
+- Full order details preserved for reporting/tracking
 
 ---
 
 ## Test the API quickly (curl / httpie examples)
 
-From PowerShell you can use `curl`/`Invoke-RestMethod` or Postman to hit endpoints, for example:
+From PowerShell you can use `curl` or Postman. Here are example requests:
 
 ```powershell
-# list products
+# List products
 curl http://localhost:8081/api/products
 
-# create a user (JSON body)
-curl -X POST http://localhost:8081/api/users -H "Content-Type: application/json" -d '{"name":"Test","email":"t@t.com","role":"BUYER"}'
+# Create a user (buyer)
+curl -X POST http://localhost:8081/api/users `
+  -H "Content-Type: application/json" `
+  -d '{"name":"Alice","email":"alice@example.com","role":"BUYER"}'
+
+# Add item to cart (session-based)
+curl -X POST http://localhost:8081/api/cart/add `
+  -H "Content-Type: application/json" `
+  -d '{"productId":1,"quantity":2}'
+
+# Get current cart
+curl http://localhost:8081/api/cart
+
+# Checkout with transaction (creates order + updates inventory)
+curl -X POST http://localhost:8081/api/checkout `
+  -H "Content-Type: application/json" `
+  -d '{"buyerId":3}'
 ```
 
 ---
 
 ## What this prototype covers (mapping to rubric)
 
-- Problem understanding & solution design: basic separation between frontend/backed and clear data models (User/Product/Order).
-- Core Java concepts: model classes, constructors, getters/setters and DAO separation.
-- Database integration (JDBC): DAOs use raw JDBC via injected DataSource.
-- Servlets & web integration: Spring Boot controllers expose REST endpoints.
-
-This is intentionally minimal so reviewers can see the core ideas and the database schema without extra complexity.
-
----
-
-## Recommended next steps (to make this production-ready or a stronger demo)
-
-1. Authentication & Authorization (JWT): protect admin/seller endpoints and allow role-based access control.
-2. Replace in-memory H2 with a persistent DB (Postgres/MySQL) and provide `application-dev.properties` + Docker Compose.
-3. Model `OrderItem` and transactional order creation (reserve inventory, rollback on failure).
-4. Input validation (Bean Validation / DTOs) and global exception handling (`@ControllerAdvice`).
-5. Use Spring's `JdbcTemplate` or Spring Data JPA for less boilerplate and easier testing.
-6. Add unit and integration tests for DAOs and controllers.
-7. Add file upload for product images and persist them to S3 or a static server.
+- **Problem understanding & solution design:** separation between frontend and backend, clear data models (User/Product/Order/OrderItem).
+- **Core Java concepts:** model classes, constructors, getters/setters, DAO pattern, service layer.
+- **Database integration (JDBC):** raw JDBC DAOs with `PreparedStatement`, inventory management.
+- **Transaction Management:** `CheckoutService` with `Connection.setAutoCommit(false)`, commit/rollback, exception handling.
+- **Servlets & web integration:** Spring Boot controllers, `HttpSession` for cart management.
 
 ---
 
-## Submission tips (non-working prototype is acceptable)
+## Backend Architecture (MVC Separation)
 
-- Mention in your report which parts are implemented and which are planned (auth, payment, order items, persistence).
-- Include screenshots of the frontend pages and H2 console showing seeded data.
-- Include sample curl commands or a Postman collection in the repo to demonstrate API behavior.
+```
+Controller Layer
+    ↓ (HTTP requests/responses)
+Service Layer (CheckoutService)
+    ↓ (business logic, transactions)
+DAO Layer (UserDAO, ProductDAO, OrderDAO, OrderItemDAO)
+    ↓ (raw JDBC, SQL execution)
+Database (H2 / MySQL / Postgres)
+```
 
 ---
 
-If you want, I can also:
+## Recommended next steps (beyond this prototype)
 
-- Add JWT-based auth and protect admin endpoints.
-- Provide a `docker-compose.yml` that runs a Postgres DB and the backend.
-- Convert DAOs to use `JdbcTemplate` and add a couple of unit tests.
+1. **Authentication & Authorization (JWT):** Protect admin/seller endpoints with role-based access control.
+2. **Persistent DB:** Replace H2 with MySQL/Postgres for production.
+3. **Input Validation & DTOs:** Use Bean Validation for request sanitization.
+4. **Global Exception Handling:** `@ControllerAdvice` to map SQL exceptions to HTTP responses.
+5. **Unit & Integration Tests:** Test DAOs, services, and controllers with embedded DB.
+6. **Search & Filtering:** Add paging, text search on products.
+7. **File Upload:** Store product images on S3 or static server.
+8. **Payment Gateway:** Integrate Stripe/PayPal for real transactions.
 
-Marking the README task completed next. If you'd like, I can also update the backend `README.md` (inside `ecomm-backend/`) to include the same info or add a Postman collection.
+---
+
+## Checkout Flow Example
+
+```
+1. User adds items to cart (session-based)
+   POST /api/cart/add → {productId, quantity}
+
+2. User initiates checkout
+   POST /api/checkout → {buyerId}
+
+3. CheckoutService (with transaction):
+   a. BEGIN TRANSACTION
+   b. Create Order record
+   c. For each cart item:
+      - Check inventory (if insufficient → ROLLBACK)
+      - Create OrderItem record
+      - Decrement product inventory
+   d. COMMIT TRANSACTION (all or nothing)
+   e. Clear cart from session
+
+4. Response to user
+   {success: true, orderId: 123, total: 99.99, status: PROCESSING}
+   OR on failure
+   {success: false, error: "Insufficient inventory for Product A"}
+```
+
+---
+
+## Run both concurrently (recommended setup)
+
+Open two separate PowerShell terminals:
+
+**Terminal 1 (Backend):**
+```powershell
+cd d:\react\ecomm_web_new\ecomm-backend
+mvn -q spring-boot:run
+```
+
+**Terminal 2 (Frontend):**
+```powershell
+cd d:\react\ecomm_web_new
+npm install  # First time only
+$env:VITE_API_URL = "http://localhost:8081"
+npm run dev
+```
+
+Visit `http://localhost:5173` for the React UI and `http://localhost:8081/api/products` for backend API.
+
+---
+
+## Additional Resources
+
+- See `ecomm-backend/README.md` for detailed backend setup and API documentation.
+- H2 Console: Visit `http://localhost:8081/h2-console` to inspect DB schema and data.
+- Sample data: See `ecomm-backend/src/main/resources/data.sql` for seeded users, products, orders.
 
 ---
 
