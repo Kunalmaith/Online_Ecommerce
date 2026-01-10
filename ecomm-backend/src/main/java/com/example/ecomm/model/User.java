@@ -1,4 +1,7 @@
 package com.example.ecomm.model;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
+
 
 public class User {
     private Long id;

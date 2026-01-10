@@ -56,6 +56,33 @@ public class ProductDAO {
         return list;
     }
 
+    public List<Product> search(String q, Integer limit, Integer offset) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT id,name,description,price,inventory FROM products");
+        boolean hasQ = q != null && !q.isBlank();
+        if (hasQ) sql.append(" WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ?");
+        sql.append(" ORDER BY id DESC");
+        if (limit != null) sql.append(" LIMIT ?");
+        if (offset != null) sql.append(" OFFSET ?");
+        try (Connection c = ds.getConnection(); PreparedStatement ps = c.prepareStatement(sql.toString())) {
+            int idx = 1;
+            if (hasQ) {
+                String like = "%" + q.toLowerCase() + "%";
+                ps.setString(idx++, like);
+                ps.setString(idx++, like);
+            }
+            if (limit != null) ps.setInt(idx++, limit);
+            if (offset != null) ps.setInt(idx++, offset);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Product(rs.getLong("id"), rs.getString("name"), rs.getString("description"), rs.getBigDecimal("price"), rs.getInt("inventory")));
+                }
+            }
+        }
+        return list;
+    }
+
+
     public boolean updateInventory(Long productId, int newInventory) throws SQLException {
         String sql = "UPDATE products SET inventory=? WHERE id=?";
         try (Connection c = ds.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {

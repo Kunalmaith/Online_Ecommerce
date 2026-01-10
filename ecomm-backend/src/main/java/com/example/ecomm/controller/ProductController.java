@@ -1,4 +1,8 @@
 package com.example.ecomm.controller;
+import org.springframework.security.access.prepost.PreAuthorize;
+
+import javax.validation.Valid;
+
 
 import com.example.ecomm.dao.ProductDAO;
 import com.example.ecomm.model.Product;
@@ -18,8 +22,11 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<?> list() throws SQLException {
-        List<Product> list = productDAO.listAll();
+    public ResponseEntity<?> list(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) Integer offset) throws SQLException {
+        List<Product> list = productDAO.search(q, limit, offset);
         return ResponseEntity.ok(list);
     }
 
@@ -31,7 +38,7 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody Product p) throws SQLException {
+    public ResponseEntity<?> create(@Valid @RequestBody Product p) throws SQLException {
         Product created = productDAO.create(p);
         return ResponseEntity.ok(created);
     }
