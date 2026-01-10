@@ -1,5 +1,5 @@
 (The file `d:\react\ecomm_web_new\README.md` exists, but is empty)
-# Online E-commerce (Prototype)
+# Online E-commerce
 
 This repository contains a frontend (React + Vite) and a Java Spring Boot backend prototype (JDBC + H2) designed to demonstrate core e-commerce concepts including transaction management and session-based cart functionality.
 
@@ -9,6 +9,15 @@ This repository contains a frontend (React + Vite) and a Java Spring Boot backen
 - ✅ Inventory reservation with atomic order creation
 - ✅ OrderItem model for line-item tracking
 - ✅ MVC separation with service layer
+
+
+**Additional backend features added:**
+- ✅ JWT auth (/api/auth/login), role guards (ADMIN/SELLER for product mutations, BUYER for payment intent)
+- ✅ Bean Validation + GlobalExceptionHandler
+- ✅ OpenAPI docs at /swagger-ui.html
+- ✅ Basic rate limiting interceptor
+- ✅ Product pagination/filtering (q, limit, offset)
+- ✅ Payment stub endpoint: POST /api/payments/intent → {clientSecret}
 
 The goal is to demonstrate Java/OOP concepts, JDBC connectivity with proper transaction handling, session management, REST endpoints, and a clean architecture suitable for review.
 
